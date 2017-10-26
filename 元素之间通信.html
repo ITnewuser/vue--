@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>元素之间的通信</title>
+</head>
+<script src="../../vue/dist/vue.js"></script>
+
+<template id="A">
+    <div>
+        <span>{{msg}}</span>
+        <input type="button" value="把数据传给B" @click="send">
+    </div>
+</template>
+
+<template id="B">
+    <div>
+        <span>{{msg}} 我是接收的A组件数据--> {{a}}</span>
+        <input type="button" value="把数据给C" @click="send">
+    </div>
+</template>
+
+<template id="C">
+    <div>
+        <span>{{msg}} 这是B 给的数据--> {{b}}</span>
+        <br>
+        <span>{{msg}} 这是C 给的数据--> {{c}} </span>
+    </div>
+</template>
+<script>
+    var Event = new Vue();
+
+    var A = {
+        data() {
+            return {
+                msg: "我是A组件",
+            }
+        },
+        methods: {
+            send() {
+                Event.$emit('Amsg', this.msg);
+            }
+        },
+        template: "#A",
+    }
+
+    var B = {
+        data() {
+            return {
+                msg: "我是B组件",
+                a: '',
+            }
+        },
+        // 这个是在  编译的 html 渲染到页面的时候 触发的函数
+        mounted() {
+            // 这个this 指向的问题 很头疼 需要转化一下 代理一下 后面才能用
+            // 或者用 bind
+            var _this = this;
+            // console.log(this);
+            Event.$on('Amsg', function (a) {
+                _this.a = a;
+                // console.log(this.a);
+            });
+        },
+        methods: {
+            send() {
+                // 这里可以传递多个数据   前面是名字 后面是数据 
+                Event.$emit('Bmsg', {
+                    Bmsg: this.msg,
+                    Cmsg: this.a
+                })
+            }
+        },
+        template: "#B",
+    }
+
+    // 这个是设立 局部组件  在父组件的  components  下面  将子组件写出来就可以了~~
+    var C = {
+        data() {
+            return {
+                msg: "我是C组件",
+                b: '',
+                c: '',
+            }
+        },
+        mounted() {
+
+            var _this = this;
+            console.log(this);
+            // 这个a 是表示传输过来的 数据   这个下面就可以解析数据了 
+            Event.$on('Bmsg', function (a) {
+                // console.log(a)
+                _this.b = a.Bmsg;
+                _this.c = a.Cmsg;
+            });
+        },
+        template: "#C",
+    }
+
+
+    window.onload = function () {
+
+        // 首先 需要建立一个 根组件 其他组件依赖这个组件  进行 数据的传输
+        new Vue({
+            data: {
+                msg: "我是根组件",
+            },
+            components: {
+                'Aaa': A,
+                'Bbb': B,
+                'Ccc': C
+            }
+        }).$mount("#box");
+    }
+</script>
+
+<body>
+    <div id="box">
+        <Aaa></Aaa>
+
+        <Bbb></Bbb>
+
+        <Ccc></Ccc>
+    </div>
+</body>
+
+
+
+</html>
